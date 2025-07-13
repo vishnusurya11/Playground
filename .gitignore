@@ -43,14 +43,34 @@ wheels/
 .project
 .pydevproject
 
-# OS
+# OS - macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# OS - Windows
 ehthumbs.db
 Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# OS - Linux
+*~
+.directory
+.Trash-*
+.nfs*
 
 # UV/Package manager
 .uv/

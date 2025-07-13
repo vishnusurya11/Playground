@@ -34,15 +34,21 @@ EpicWeaver employs a sophisticated multi-agent system:
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- UV package manager
+- Python 3.10+ (3.10, 3.11, or 3.12 recommended)
+- UV package manager (cross-platform Python package manager)
 - OpenAI API key
+- Git (for cloning the repository)
 
 ### Installation
 
-1. **Install UV** (if not already installed):
+1. **Install UV** (Python package manager):
    ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+   # Option 1: Using pip (works on all platforms)
+   pip install uv
+   
+   # Option 2: Platform-specific installers
+   # macOS/Linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+   # Windows: irm https://astral.sh/uv/install.ps1 | iex
    ```
 
 2. **Clone the repository**:
@@ -58,18 +64,23 @@ EpicWeaver employs a sophisticated multi-agent system:
 
 4. **Set up environment**:
    ```bash
-   cp .env.example .env
-   # Edit .env and add your OpenAI API key
+   # Copy the example environment file
+   python -c "import shutil; shutil.copy('.env.example', '.env')"
+   
+   # Then edit .env and add your OpenAI API key
    ```
 
 ### Basic Usage
 
 ```bash
+# Test the system first (recommended)
+uv run python test_plot_expander.py
+
 # Run with example plots
 uv run python plot_expander.py
 
-# Test the system first
-uv run python test_plot_expander.py
+# View generated plots in visual UI
+uv run streamlit run plot_viewer.py
 ```
 
 ### Python API
@@ -91,6 +102,36 @@ print(f"Winner: {result.voting_results.winning_team}")
 print(f"Themes: {result.selected_expansion['themes']}")
 print(f"Complexity: {result.selected_expansion['estimated_complexity']}/10")
 ```
+
+## 🖥️ Visual Plot Viewer
+
+EpicWeaver includes a beautiful web-based UI for browsing and analyzing generated plots:
+
+### Features
+- 📁 **Auto-loads** all plots from the forge directory
+- ⬅️➡️ **Navigation** with Previous/Next buttons and dropdown
+- 📑 **5 Team Tabs** to compare all expansions side-by-side
+- 📊 **Visual voting results** with charts and score breakdowns
+- 🎨 **Clean, modern UI** with responsive design
+- 🏆 **Winner highlighting** and detailed analysis
+
+### Running the Viewer
+```bash
+# Make sure dependencies are installed
+uv sync
+
+# Launch the viewer
+uv run streamlit run plot_viewer.py
+
+# Opens automatically in your browser at http://localhost:8501
+```
+
+### Viewer Navigation
+- Use the **dropdown** to select any plot file
+- Click **◀ ▶** buttons to browse sequentially
+- Each team's expansion is in its own **tab**
+- **Voting results** show at the bottom with interactive charts
+- **Expandable sections** for detailed reasoning
 
 ## 📊 Output Format
 
@@ -158,6 +199,44 @@ uv run python test_voting.py
 # Test with single plot
 uv run python test_single_plot.py
 ```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**UV Installation Failed:**
+- **Windows:** Ensure you're running PowerShell as Administrator
+- **macOS/Linux:** You may need to add `~/.cargo/bin` to your PATH
+- **All platforms:** Try the pip installation method: `pip install uv`
+
+**OpenAI API Key Not Found:**
+- Ensure your `.env` file is in the project root directory
+- Check that the key is correctly formatted: `OPENAI_API_KEY=sk-...`
+- On Windows, make sure the file is named `.env` not `.env.txt`
+
+**Permission Errors:**
+- **macOS/Linux:** Use `chmod +x` for any scripts if needed
+- **Windows:** Run your terminal as Administrator
+
+**Path/File Not Found Errors:**
+- Ensure you're in the correct directory (`EpicWeaver` folder)
+- Use `cd` (or `Set-Location` in PowerShell) to navigate to the project root
+
+### Platform-Specific Notes
+
+**Windows Users:**
+- Use PowerShell or Command Prompt (PowerShell recommended)
+- File paths use backslashes, but the code handles this automatically
+- If using WSL, follow the Linux instructions instead
+
+**macOS Users:**
+- May need to install Xcode Command Line Tools: `xcode-select --install`
+- M1/M2 Macs: All dependencies are compatible with Apple Silicon
+
+**Linux Users:**
+- Ensure Python development headers are installed
+- Ubuntu/Debian: `sudo apt-get install python3-dev`
+- Fedora/RHEL: `sudo dnf install python3-devel`
 
 ## 🤝 Contributing
 
