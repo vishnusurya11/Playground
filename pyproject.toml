@@ -1,0 +1,35 @@
+[project]
+name = "novel-writer-agents"
+version = "0.1.0"
+description = "Multi-agent system for writing novels using LangChain"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0.0",
+    "langchain>=0.1.0",
+    "langchain-openai>=0.0.5",
+    "langgraph>=0.2.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.4",
+    "black>=24.10.0",
+    "ruff>=0.8.6",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "I", "N", "W"]

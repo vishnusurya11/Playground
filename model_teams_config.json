@@ -1,0 +1,266 @@
+{
+  "expansion_teams": {
+    "team_1": {
+      "name": "Visionary Scribes",
+      "model_provider": "openai",
+      "model_name": "gpt-4o-mini",
+      "model_config": "gpt-4o-mini",
+      "temperature": 0.8,
+      "max_tokens": 2000,
+      "agents": {
+        "lead_expander": {
+          "role": "Create main plot expansion",
+          "system_prompt": "You are a creative plot developer. Expand the given plot into a compelling one-page story outline."
+        },
+        "story_analyst": {
+          "role": "Analyze potential and challenges",
+          "system_prompt": "You are a story analyst. Review plot expansions and identify strengths, weaknesses, and potential."
+        },
+        "creative_consultant": {
+          "role": "Add unique elements",
+          "system_prompt": "You are a creative consultant. Add unique twists and original elements to story expansions."
+        }
+      }
+    },
+    "team_2": {
+      "name": "Narrative Architects",
+      "model_provider": "openai",
+      "model_name": "gpt-4.1-nano",
+      "model_config": "gpt-4-nano",
+      "temperature": 0.7,
+      "max_tokens": 2000,
+      "agents": {
+        "lead_expander": {
+          "role": "Create main plot expansion",
+          "system_prompt": "You are a narrative architect. Build a strong story structure from the given plot."
+        },
+        "story_analyst": {
+          "role": "Analyze potential and challenges",
+          "system_prompt": "You are a structural analyst. Evaluate story architecture and flow."
+        },
+        "creative_consultant": {
+          "role": "Add unique elements",
+          "system_prompt": "You are an innovation specialist. Introduce unexpected elements that enhance the narrative."
+        }
+      }
+    },
+    "team_3": {
+      "name": "Plot Weavers",
+      "model_provider": "openai",
+      "model_name": "o3-mini",
+      "model_config": "o3-mini",
+      "temperature": 0.7,
+      "max_tokens": 2000,
+      "agents": {
+        "lead_expander": {
+          "role": "Create main plot expansion",
+          "system_prompt": "You are a master plot weaver. Interlace compelling storylines from the base plot."
+        },
+        "story_analyst": {
+          "role": "Analyze potential and challenges",
+          "system_prompt": "You are a complexity analyst. Ensure plot threads work together harmoniously."
+        },
+        "creative_consultant": {
+          "role": "Add unique elements",
+          "system_prompt": "You are a subplot specialist. Add layers and depth to the main narrative."
+        }
+      }
+    },
+    "team_4": {
+      "name": "Story Alchemists",
+      "model_provider": "openai",
+      "model_name": "gpt-4.1-mini",
+      "model_config": "gpt-4-mini",
+      "temperature": 0.8,
+      "max_tokens": 2000,
+      "agents": {
+        "lead_expander": {
+          "role": "Create main plot expansion",
+          "system_prompt": "You are a story alchemist. Transform simple plots into gold through creative expansion."
+        },
+        "story_analyst": {
+          "role": "Analyze potential and challenges",
+          "system_prompt": "You are a narrative chemist. Analyze story elements and their reactions."
+        },
+        "creative_consultant": {
+          "role": "Add unique elements",
+          "system_prompt": "You are a twist master. Add surprising yet logical plot developments."
+        }
+      }
+    },
+    "team_5": {
+      "name": "Dream Crafters",
+      "model_provider": "openai",
+      "model_name": "o4-mini",
+      "model_config": "o4-mini",
+      "temperature": 0.9,
+      "max_tokens": 2000,
+      "agents": {
+        "lead_expander": {
+          "role": "Create main plot expansion",
+          "system_prompt": "You are a dream crafter. Expand plots with imagination and wonder."
+        },
+        "story_analyst": {
+          "role": "Analyze potential and challenges",
+          "system_prompt": "You are a feasibility expert. Ground creative ideas in narrative logic."
+        },
+        "creative_consultant": {
+          "role": "Add unique elements",
+          "system_prompt": "You are an originality expert. Ensure the story stands out from conventional narratives."
+        }
+      }
+    }
+  },
+  "voting_council": {
+    "agent_1": {
+      "name": "Chief Literary Critic",
+      "model_provider": "openai",
+      "model_name": "gpt-4.1-mini",
+      "model_config": "gpt-4-mini",
+      "temperature": 0.3,
+      "system_prompt": "You are a chief literary critic with decades of experience evaluating fiction. Assess plot expansions for their literary merit, narrative sophistication, and artistic potential. Be thorough but fair in your critique.",
+      "voting_criteria_weights": {
+        "originality": 0.2,
+        "coherence": 0.15,
+        "market_potential": 0.15,
+        "character_depth": 0.2,
+        "thematic_richness": 0.15,
+        "expandability": 0.15
+      }
+    },
+    "agent_2": {
+      "name": "Genre Specialist",
+      "model_provider": "openai",
+      "model_name": "gpt-4o-mini",
+      "model_config": "gpt-4o-mini",
+      "temperature": 0.4,
+      "system_prompt": "You are a genre specialist who deeply understands genre conventions, reader expectations, and market trends. Evaluate plot expansions for how well they fit and innovate within their genre while maintaining broad appeal.",
+      "voting_criteria_weights": {
+        "originality": 0.15,
+        "coherence": 0.2,
+        "market_potential": 0.2,
+        "character_depth": 0.15,
+        "thematic_richness": 0.1,
+        "expandability": 0.2
+      }
+    },
+    "agent_3": {
+      "name": "Character Psychologist",
+      "model_provider": "openai",
+      "model_name": "o3-mini",
+      "model_config": "o3-mini",
+      "temperature": 0.3,
+      "system_prompt": "You are a character psychologist specializing in fictional character development. Analyze plot expansions for psychological depth, character motivations, believable arcs, and emotional authenticity. Focus on the human element of storytelling.",
+      "voting_criteria_weights": {
+        "originality": 0.1,
+        "coherence": 0.15,
+        "market_potential": 0.1,
+        "character_depth": 0.35,
+        "thematic_richness": 0.2,
+        "expandability": 0.1
+      }
+    },
+    "agent_4": {
+      "name": "Market Analyst",
+      "model_provider": "openai",
+      "model_name": "gpt-4.1-nano",
+      "model_config": "gpt-4-nano",
+      "temperature": 0.2,
+      "system_prompt": "You are a publishing market analyst with expertise in reader demographics, sales trends, and commercial viability. Evaluate plot expansions for their market potential, target audience appeal, and competitive positioning in the current literary landscape.",
+      "voting_criteria_weights": {
+        "originality": 0.15,
+        "coherence": 0.15,
+        "market_potential": 0.35,
+        "character_depth": 0.1,
+        "thematic_richness": 0.1,
+        "expandability": 0.15
+      }
+    },
+    "agent_5": {
+      "name": "Story Structure Expert",
+      "model_provider": "openai",
+      "model_name": "gpt-4o-mini",
+      "model_config": "gpt-4o-mini",
+      "temperature": 0.3,
+      "system_prompt": "You are a story structure expert specializing in narrative architecture. Evaluate plot expansions for structural integrity, pacing potential, and how well they can sustain a full-length novel. Focus on plot mechanics and story beats.",
+      "voting_criteria_weights": {
+        "originality": 0.1,
+        "coherence": 0.3,
+        "market_potential": 0.15,
+        "character_depth": 0.15,
+        "thematic_richness": 0.1,
+        "expandability": 0.2
+      }
+    },
+    "agent_6": {
+      "name": "Theme Philosopher",
+      "model_provider": "openai",
+      "model_name": "o4-mini",
+      "model_config": "o4-mini",
+      "temperature": 0.4,
+      "system_prompt": "You are a theme philosopher who examines the deeper meanings and philosophical implications of stories. Evaluate plot expansions for their thematic depth, universal truths, and potential to explore meaningful human experiences.",
+      "voting_criteria_weights": {
+        "originality": 0.2,
+        "coherence": 0.1,
+        "market_potential": 0.1,
+        "character_depth": 0.2,
+        "thematic_richness": 0.3,
+        "expandability": 0.1
+      }
+    },
+    "agent_7": {
+      "name": "Reader Experience Advocate",
+      "model_provider": "openai",
+      "model_name": "gpt-4o-mini",
+      "model_config": "gpt-4o-mini",
+      "temperature": 0.5,
+      "system_prompt": "You are a reader experience advocate focused on how stories impact and engage readers. Evaluate plot expansions for their emotional resonance, page-turning quality, and ability to create memorable reading experiences.",
+      "voting_criteria_weights": {
+        "originality": 0.15,
+        "coherence": 0.2,
+        "market_potential": 0.2,
+        "character_depth": 0.15,
+        "thematic_richness": 0.15,
+        "expandability": 0.15
+      }
+    }
+  },
+  "alternative_providers": {
+    "anthropic": {
+      "models": {
+        "claude-3-haiku": {
+          "input_price": 0.25,
+          "output_price": 1.25
+        },
+        "claude-3-sonnet": {
+          "input_price": 3.0,
+          "output_price": 15.0
+        }
+      }
+    },
+    "google": {
+      "models": {
+        "gemini-1.5-flash": {
+          "input_price": 0.075,
+          "output_price": 0.30
+        },
+        "gemini-1.5-flash-8b": {
+          "input_price": 0.0375,
+          "output_price": 0.15
+        }
+      }
+    },
+    "ollama": {
+      "models": {
+        "llama3.2": {
+          "input_price": 0,
+          "output_price": 0
+        },
+        "qwen2.5": {
+          "input_price": 0,
+          "output_price": 0
+        }
+      }
+    }
+  }
+}
