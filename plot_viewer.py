@@ -1,5 +1,5 @@
 """
-EpicWeaver Plot Viewer - Visual UI for browsing plot expansions
+EpicWeaver Plot Viewer - Visual UI for browsing plot expansions and analytics
 """
 
 import streamlit as st
@@ -7,6 +7,9 @@ import json
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from analytics import PlotAnalytics
 
 # Page configuration
 st.set_page_config(
@@ -63,11 +66,11 @@ GENRE_COLORS = {
 
 # Team name to color mapping
 TEAM_COLORS = {
-    "Visionary Scribes": COLORS["team_blue"],
-    "Narrative Architects": COLORS["team_green"], 
-    "Plot Weavers": COLORS["team_purple"],
-    "Story Alchemists": COLORS["team_orange"],
-    "Dream Crafters": COLORS["team_pink"]
+    "Cosmic Storytellers": COLORS["team_blue"],
+    "Neural Narratives": COLORS["team_green"], 
+    "Quantum Plotters": COLORS["team_purple"],
+    "Mythic Forge": COLORS["team_orange"],
+    "Echo Chamber": COLORS["team_pink"]
 }
 
 def get_genre_color(genre):
@@ -247,10 +250,274 @@ def display_voting_results(voting_results):
                 with st.expander("View Reasoning"):
                     st.write(vote['reasoning'])
 
+# Display analytics functions
+def display_team_analytics(analytics: PlotAnalytics):
+    """Display team performance analytics"""
+    st.markdown("## 📊 Team Analytics")
+    
+    team_stats = analytics.get_team_stats()
+    
+    if not team_stats:
+        st.warning("No team data available")
+        return
+    
+    # Team performance overview
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Win rate chart
+        team_names = list(team_stats.keys())
+        win_rates = [stats['win_rate'] for stats in team_stats.values()]
+        
+        fig = px.bar(
+            x=team_names,
+            y=win_rates,
+            title="Team Win Rates (%)",
+            labels={'x': 'Team', 'y': 'Win Rate (%)'},
+            color=win_rates,
+            color_continuous_scale='Blues'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Team summary stats
+        st.markdown("### Team Summary")
+        for team_name, stats in team_stats.items():
+            with st.expander(f"{team_name}"):
+                st.metric("Win Rate", f"{stats['win_rate']:.1f}%")
+                st.metric("Total Wins", stats['wins'])
+                st.metric("Participations", stats['total_participations'])
+                st.metric("Avg Complexity", f"{stats['avg_complexity']:.1f}")
+    
+    # Genre performance heatmap
+    st.markdown("### Genre Performance")
+    
+    # Create genre performance matrix
+    genres = set()
+    for stats in team_stats.values():
+        genres.update(stats['genre_performance'].keys())
+    
+    genre_data = []
+    for team_name, stats in team_stats.items():
+        for genre in genres:
+            if genre in stats['genre_performance']:
+                perf = stats['genre_performance'][genre]
+                win_rate = (perf['wins'] / perf['participations'] * 100) if perf['participations'] > 0 else 0
+                genre_data.append({
+                    'Team': team_name,
+                    'Genre': genre,
+                    'Win Rate': win_rate,
+                    'Participations': perf['participations']
+                })
+    
+    if genre_data:
+        df = pd.DataFrame(genre_data)
+        pivot_df = df.pivot(index='Team', columns='Genre', values='Win Rate')
+        
+        fig = px.imshow(
+            pivot_df,
+            title="Team Performance by Genre (Win Rate %)",
+            aspect="auto",
+            color_continuous_scale="RdBu",
+            text_auto='.1f'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Average votes per team
+    st.markdown("### Average Votes Received")
+    avg_votes = [stats['avg_votes_per_round'] for stats in team_stats.values()]
+    
+    fig = px.bar(
+        x=team_names,
+        y=avg_votes,
+        title="Average Votes per Round",
+        labels={'x': 'Team', 'y': 'Average Votes'},
+        color=avg_votes,
+        color_continuous_scale='Greens'
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def display_voter_analytics(analytics: PlotAnalytics):
+    """Display voter behavior analytics"""
+    st.markdown("## 🗳️ Voter Analytics")
+    
+    voter_stats = analytics.get_voter_stats()
+    
+    if not voter_stats:
+        st.warning("No voter data available")
+        return
+    
+    # Voter accuracy overview
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Accuracy chart
+        voter_names = list(voter_stats.keys())
+        accuracy_rates = [stats['accuracy_rate'] for stats in voter_stats.values()]
+        
+        fig = px.bar(
+            x=voter_names,
+            y=accuracy_rates,
+            title="Voter Accuracy Rates (%)",
+            labels={'x': 'Voter', 'y': 'Accuracy Rate (%)'},
+            color=accuracy_rates,
+            color_continuous_scale='Viridis'
+        )
+        fig.update_xaxes(tickangle=-45)
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Voting patterns
+        patterns = analytics.get_voting_patterns()
+        
+        st.markdown("### Voting Patterns")
+        
+        # Consensus voters
+        if patterns['consensus_voters']:
+            st.markdown("**🎯 Most Accurate Voters:**")
+            for voter in patterns['consensus_voters'][:3]:
+                st.caption(f"• {voter['name']} ({voter['accuracy']:.1f}%)")
+        
+        # Contrarian voters
+        if patterns['contrarian_voters']:
+            st.markdown("**🎨 Most Independent Voters:**")
+            for voter in patterns['contrarian_voters'][:3]:
+                st.caption(f"• {voter['name']} ({voter['accuracy']:.1f}%)")
+    
+    # Team preferences heatmap
+    st.markdown("### Voter-Team Preferences")
+    
+    # Create preference matrix
+    teams = set()
+    for stats in voter_stats.values():
+        teams.update(stats['team_votes'].keys())
+    
+    pref_data = []
+    for voter_name, stats in voter_stats.items():
+        for team in teams:
+            votes = stats['team_votes'].get(team, 0)
+            pref_data.append({
+                'Voter': voter_name,
+                'Team': team,
+                'Votes': votes
+            })
+    
+    if pref_data:
+        df = pd.DataFrame(pref_data)
+        pivot_df = df.pivot(index='Voter', columns='Team', values='Votes')
+        
+        fig = px.imshow(
+            pivot_df,
+            title="Voter-Team Preference Matrix (Vote Count)",
+            aspect="auto",
+            color_continuous_scale="YlOrRd",
+            text_auto=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Individual voter details
+    st.markdown("### Individual Voter Profiles")
+    
+    voter_cols = st.columns(3)
+    for idx, (voter_name, stats) in enumerate(voter_stats.items()):
+        col = voter_cols[idx % 3]
+        with col:
+            with st.expander(voter_name):
+                st.metric("Accuracy", f"{stats['accuracy_rate']:.1f}%")
+                st.metric("Total Votes", stats['total_votes_cast'])
+                st.metric("Favorite Team", stats['favorite_team'])
+                
+                # Criteria preferences
+                if stats['avg_criteria_scores']:
+                    st.caption("**Average Criteria Scores:**")
+                    for criterion, score in stats['avg_criteria_scores'].items():
+                        st.progress(score/10, text=f"{criterion}: {score:.1f}")
+
+def display_overall_statistics(analytics: PlotAnalytics):
+    """Display system-wide statistics"""
+    st.markdown("## 📈 Overall Statistics")
+    
+    stats = analytics.get_overall_statistics()
+    
+    # Key metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Plots Generated", stats['total_plots'])
+    with col2:
+        st.metric("Avg Processing Time", f"{stats['avg_processing_time']:.1f}s")
+    with col3:
+        st.metric("Avg Complexity", f"{stats['avg_complexity']:.1f}/10")
+    with col4:
+        st.metric("Unique Models Used", len(stats['models_used']))
+    
+    # Genre distribution
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if stats['genres']:
+            fig = px.pie(
+                values=list(stats['genres'].values()),
+                names=list(stats['genres'].keys()),
+                title="Genre Distribution"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        if stats['models_used']:
+            # Model usage
+            models = list(stats['models_used'].keys())
+            usage = list(stats['models_used'].values())
+            
+            fig = px.bar(
+                x=models,
+                y=usage,
+                title="Model Usage Frequency",
+                labels={'x': 'Model', 'y': 'Usage Count'}
+            )
+            fig.update_xaxes(tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Processing time distribution
+    if stats['processing_times']:
+        fig = px.histogram(
+            stats['processing_times'],
+            nbins=20,
+            title="Processing Time Distribution",
+            labels={'value': 'Processing Time (s)', 'count': 'Frequency'}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Complexity distribution
+    if stats['complexity_distribution']:
+        fig = px.histogram(
+            stats['complexity_distribution'],
+            nbins=10,
+            title="Story Complexity Distribution",
+            labels={'value': 'Complexity Score', 'count': 'Frequency'}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
 # Main app
 def main():
-    st.title("📚 EpicWeaver Plot Viewer")
+    st.title("📚 EpicWeaver Dashboard")
     
+    # Mode selection
+    mode = st.radio(
+        "Select Mode",
+        ["📖 Review", "📊 Analytics"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+    
+    if mode == "📖 Review":
+        # Original review functionality
+        display_review_mode()
+    else:
+        # Analytics mode
+        display_analytics_mode()
+
+def display_review_mode():
+    """Display the original plot review interface"""
     # Load all plot files
     plot_files = load_plot_files()
     
@@ -409,6 +676,53 @@ def main():
             with col2:
                 st.metric("Complexity", f"{selected['estimated_complexity']}/10")
                 st.metric("Processing Time", f"{plot_data['processing_time']:.2f}s")
+
+def display_analytics_mode():
+    """Display analytics interface"""
+    # Initialize analytics
+    analytics = PlotAnalytics()
+    
+    if not analytics.plots_data:
+        st.error("No plot data found for analytics.")
+        st.info("Generate some plots first using `python plot_expander.py`")
+        return
+    
+    # Analytics tabs
+    tab1, tab2, tab3 = st.tabs(["📊 Team Analytics", "🗳️ Voter Analytics", "📈 Overall Statistics"])
+    
+    with tab1:
+        display_team_analytics(analytics)
+    
+    with tab2:
+        display_voter_analytics(analytics)
+    
+    with tab3:
+        display_overall_statistics(analytics)
+    
+    # Additional analytics in sidebar
+    with st.sidebar:
+        st.markdown("## Analytics Summary")
+        
+        # Quick stats
+        team_stats = analytics.get_team_stats()
+        voter_stats = analytics.get_voter_stats()
+        overall_stats = analytics.get_overall_statistics()
+        
+        st.metric("Total Plots", overall_stats['total_plots'])
+        st.metric("Active Teams", len(team_stats))
+        st.metric("Active Voters", len(voter_stats))
+        
+        # Top performer
+        if team_stats:
+            top_team = max(team_stats.items(), key=lambda x: x[1]['win_rate'])
+            st.markdown("### 🏆 Top Team")
+            st.info(f"{top_team[0]} ({top_team[1]['win_rate']:.1f}% win rate)")
+        
+        # Most accurate voter
+        if voter_stats:
+            top_voter = max(voter_stats.items(), key=lambda x: x[1]['accuracy_rate'])
+            st.markdown("### 🎯 Most Accurate Voter")
+            st.info(f"{top_voter[0]} ({top_voter[1]['accuracy_rate']:.1f}% accuracy)")
 
 if __name__ == "__main__":
     main()
