@@ -27,20 +27,28 @@
       "model_provider": "openai",
       "model_name": "gpt-4.1-nano",
       "model_config": "gpt-4-nano",
-      "temperature": 0.7,
+      "temperature": 0.8,
       "max_tokens": 2000,
+      "focus": "Innovative narrative structures and experimental storytelling techniques",
+      "unique_strengths": [
+        "Non-linear narratives",
+        "Multiple timelines", 
+        "Unreliable narrators",
+        "Nested story structures",
+        "Metafictional elements"
+      ],
       "agents": {
         "lead_expander": {
           "role": "Create main plot expansion",
-          "system_prompt": "You are a narrative architect. Build a strong story structure from the given plot."
+          "system_prompt": "You are a master narrative architect specializing in innovative story structures. Build stories with unique frameworks - consider non-linear timelines, multiple perspectives, nested narratives, or experimental formats. Focus on HOW the story is told as much as WHAT is told."
         },
         "story_analyst": {
           "role": "Analyze potential and challenges",
-          "system_prompt": "You are a structural analyst. Evaluate story architecture and flow."
+          "system_prompt": "You are a structural analyst who ensures innovative narrative techniques serve the story. Evaluate how the experimental structure enhances rather than obscures the emotional core."
         },
         "creative_consultant": {
           "role": "Add unique elements",
-          "system_prompt": "You are an innovation specialist. Introduce unexpected elements that enhance the narrative."
+          "system_prompt": "You are an innovation specialist in narrative techniques. Suggest bold structural choices that will make readers see the story in a new way - but always grounded in character and emotion."
         }
       }
     },
@@ -51,18 +59,26 @@
       "model_config": "o3-mini",
       "temperature": 0.7,
       "max_tokens": 2000,
+      "focus": "Intricate plotting with satisfying twists and interconnected storylines",
+      "unique_strengths": [
+        "Clever plot twists",
+        "Interconnected subplots",
+        "Mystery elements",
+        "Satisfying reveals",
+        "Tight cause-and-effect chains"
+      ],
       "agents": {
         "lead_expander": {
           "role": "Create main plot expansion",
-          "system_prompt": "You are a master plot weaver. Interlace compelling storylines from the base plot."
+          "system_prompt": "You are a master plot weaver specializing in intricate, tightly-woven narratives. Create stories where every thread matters and connects brilliantly. Focus on clever twists, satisfying reveals, and plots that reward careful attention. Every element should click into place like a perfect puzzle."
         },
         "story_analyst": {
           "role": "Analyze potential and challenges",
-          "system_prompt": "You are a complexity analyst. Ensure plot threads work together harmoniously."
+          "system_prompt": "You are a complexity analyst who ensures all plot threads work together seamlessly. Look for opportunities to create 'aha!' moments and ensure every twist feels both surprising and inevitable in hindsight."
         },
         "creative_consultant": {
           "role": "Add unique elements",
-          "system_prompt": "You are a subplot specialist. Add layers and depth to the main narrative."
+          "system_prompt": "You are a subplot specialist and twist architect. Add layers of mystery and misdirection that enhance the main plot. Create red herrings that are satisfying even when revealed as false leads."
         }
       }
     },

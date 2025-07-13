@@ -19,23 +19,41 @@ load_dotenv()
 
 # Known available models (fallbacks)
 FALLBACK_MODELS = {
-    "gpt-4.1-nano-2025-04-14": "gpt-4o-mini-2024-07-18",  # Fallback to gpt-4o-mini
-    "gpt-4.1-mini-2025-04-14": "gpt-4o-mini-2024-07-18",  # Fallback to gpt-4o-mini
-    "gpt-4.1-2025-04-14": "gpt-4o-2024-08-06",  # Fallback to gpt-4o
-    "o3-mini-2025-01-31": "gpt-4o-mini-2024-07-18",  # Fallback to gpt-4o-mini
-    "o4-mini-2025-04-16": "gpt-4o-mini-2024-07-18",  # Fallback to gpt-4o-mini
-    "o3-2025-04-16": "gpt-4o-2024-08-06",  # Fallback to gpt-4o
+    "gpt-4.1-nano-2025-04-14": "gpt-4o-mini-2024-07-18",  # Not available yet
+    "gpt-4.1-mini-2025-04-14": "gpt-4o-mini-2024-07-18",  # Not available yet
+    "gpt-4.1-2025-04-14": "gpt-4o-2024-08-06",  # Not available yet
+    "o3-mini-2025-01-31": "o1-mini-2024-09-12",  # Use o1-mini instead
+    "o4-mini-2025-04-16": "o1-mini-2024-09-12",  # Use o1-mini instead
+    "o3-2025-04-16": "gpt-4o-2024-08-06",  # Not available yet
 }
 
 # Structured Output Models
+class CharacterInfo(BaseModel):
+    name: str = Field(description="Character name")
+    role: str = Field(description="Character's role in the story")
+    description: str = Field(description="Personality and motivation")
+
+class StoryBeats(BaseModel):
+    opening: str = Field(description="How the story begins - the hook")
+    catalyst: str = Field(description="The event that launches the main story")
+    midpoint: str = Field(description="Major revelation or turn that changes everything")
+    crisis: str = Field(description="The darkest moment before the climax")
+    resolution: str = Field(description="How the conflict resolves and characters change")
+
 class ExpandedPlotProposal(BaseModel):
     team_name: str = Field(description="Name of the expansion team")
     model_used: str = Field(description="Model used for expansion")
-    expanded_plot: str = Field(description="One page plot expansion")
+    title: str = Field(description="Story title")
+    logline: str = Field(description="One-sentence hook (max 30 words)")
+    main_characters: List[CharacterInfo] = Field(description="Main character details")
+    plot_summary: str = Field(description="The main plot narrative (300-400 words)")
+    central_conflict: str = Field(description="Core conflict and stakes")
+    story_beats: StoryBeats = Field(description="Key story beats")
+    ending: str = Field(description="How the story concludes")
     key_elements: List[str] = Field(description="Main story elements")
     potential_arcs: List[str] = Field(description="Character arc possibilities")
     themes: List[str] = Field(description="Potential themes to explore")
-    estimated_complexity: int = Field(description="Story complexity 1-10")
+    estimated_complexity: int = Field(description="Story complexity 1-10", ge=1, le=10)
     unique_hooks: List[str] = Field(description="What makes this version unique")
 
 class VotingResult(BaseModel):
@@ -67,7 +85,7 @@ class PlotExpander:
         self.output_dir = Path("forge")
         self.output_dir.mkdir(exist_ok=True)
         self.model_cache = {}  # Cache for initialized models
-        
+    
     def get_model_with_fallback(self, model_name: str, temperature: float = 0.7) -> ChatOpenAI:
         """Get a model, using fallback if the requested model is not available"""
         # Check cache first
@@ -110,6 +128,39 @@ class PlotExpander:
         with open(config_path, 'r') as f:
             return json.load(f)
     
+    def _get_team_creative_direction(self, team_name: str) -> str:
+        """Get team-specific creative direction based on team name"""
+        team_directions = {
+            "Visionary Scribes": """TEAM IDENTITY: You are the Visionary Scribes - masters of expansive, imaginative storytelling.
+Your strength lies in creating rich, detailed worlds with complex character relationships and ambitious scope.
+You excel at finding the epic potential in any story seed, transforming simple concepts into sweeping narratives.
+AVOID: Being too generic or safe. Push boundaries while maintaining coherence.""",
+            
+            "Narrative Architects": """TEAM IDENTITY: You are the Narrative Architects - structural innovators and masters of story design.
+Your strength lies in constructing intricate narrative frameworks with innovative structures and techniques.
+You excel at non-linear storytelling, multiple perspectives, nested narratives, and experimental formats.
+Focus on HOW the story is told as much as WHAT is told. Create architecturally beautiful stories.
+AVOID: Being too abstract or experimental at the expense of emotional connection. Ground your innovations in human drama.""",
+            
+            "Plot Weavers": """TEAM IDENTITY: You are the Plot Weavers - masters of intricate plotting and satisfying twists.
+Your strength lies in creating tightly-woven narratives where every thread matters and connects brilliantly.
+You excel at mysteries within mysteries, clever misdirection, and plots that reward careful attention.
+Focus on creating "aha!" moments and satisfying reveals that recontextualize everything that came before.
+AVOID: Overcomplicating for complexity's sake. Every twist should feel inevitable in hindsight.""",
+            
+            "Story Alchemists": """TEAM IDENTITY: You are the Story Alchemists - transformative storytellers who blend genres and tones.
+Your strength lies in unexpected combinations and genre-bending approaches that create something entirely new.
+You excel at finding surprising angles and mixing elements that shouldn't work but somehow do brilliantly.
+AVOID: Being predictable or following standard genre conventions too closely.""",
+            
+            "Dream Crafters": """TEAM IDENTITY: You are the Dream Crafters - weavers of surreal, emotionally resonant narratives.
+Your strength lies in creating dreamlike, atmospheric stories that blur reality and imagination.
+You excel at psychological depth, symbolic imagery, and stories that work on multiple levels of meaning.
+AVOID: Being incomprehensible or losing the core story in abstract concepts."""
+        }
+        
+        return team_directions.get(team_name, "Create your unique team perspective on this story.")
+    
     def save_plot_output(self, plot_id: str, output: PlotExpanderOutput):
         """Save plot expansion output to forge folder"""
         filename = f"plot_{plot_id}_{output.timestamp.replace(':', '-')}.json"
@@ -139,110 +190,36 @@ class PlotExpander:
         # Use structured output
         structured_model = model.with_structured_output(ExpandedPlotProposal)
         
-        # Step 1: Lead Expander creates initial expansion
-        lead_agent = team_config["agents"]["lead_expander"]
-        lead_prompt = f"""{lead_agent["system_prompt"]}
+        # Step 1: Direct structured expansion with team-specific guidance
+        
+        # Get team-specific creative direction
+        team_guidance = self._get_team_creative_direction(team_name)
+        
+        final_prompt = f"""You are part of {team_name}, a creative team expanding plot ideas.
 
 Team: {team_name}
 Genre: {genre}
 Original Plot: {plot}
 
-Create a compelling one-page plot expansion (300-500 words) that includes:
-- Main characters with clear motivations
-- Central conflict and stakes
-- 3-5 key story elements
+{team_guidance}
+
+As {team_name}, create a compelling plot expansion with your team's unique perspective.
+
+Provide a complete story expansion with:
+- A creative title that reflects your team's approach
+- A compelling one-sentence logline (max 30 words)
+- 3-4 main characters with names, roles, and motivations
+- A plot summary (300-400 words) that expands the original concept
+- The central conflict and what's at stake
+- Five key story beats (opening, catalyst, midpoint, crisis, resolution)
+- How the story ends
+- 3-5 key story elements that drive the plot
 - 2-3 potential character arcs
 - Major themes to explore
-- Unique hooks that set this story apart
-- An estimated complexity rating (1-10)
+- What makes this version unique (3-5 hooks)
+- Complexity rating from 1-10
 
-Remember to embody the {team_name} team's unique perspective and style."""
-
-        messages = [
-            SystemMessage(content=lead_agent["system_prompt"]),
-            HumanMessage(content=lead_prompt)
-        ]
-        
-        # Get initial expansion
-        lead_response = model.invoke(messages)
-        expansion_text = lead_response.content
-        
-        # Add small delay to avoid rate limits
-        time.sleep(0.5)
-        
-        # Step 2: Story Analyst reviews and critiques
-        analyst_agent = team_config["agents"]["story_analyst"]
-        analyst_prompt = f"""{analyst_agent["system_prompt"]}
-
-Original Plot: {plot}
-Genre: {genre}
-
-Lead Expander's proposal:
-{expansion_text}
-
-Analyze this expansion and provide:
-1. Strengths of the current expansion
-2. Potential weaknesses or plot holes
-3. Suggestions for improvement
-4. Additional elements to consider"""
-
-        analyst_messages = [
-            SystemMessage(content=analyst_agent["system_prompt"]),
-            HumanMessage(content=analyst_prompt)
-        ]
-        
-        analyst_response = model.invoke(analyst_messages)
-        analyst_feedback = analyst_response.content
-        
-        # Add small delay to avoid rate limits
-        time.sleep(0.5)
-        
-        # Step 3: Creative Consultant adds final touches
-        consultant_agent = team_config["agents"]["creative_consultant"]
-        consultant_prompt = f"""{consultant_agent["system_prompt"]}
-
-Original Plot: {plot}
-Genre: {genre}
-
-Lead Expander's proposal:
-{expansion_text}
-
-Story Analyst's feedback:
-{analyst_feedback}
-
-Add unique creative elements and polish the expansion. Focus on:
-1. Unexpected twists or angles
-2. Innovative storytelling approaches
-3. Elements that make this stand out in the {genre} genre
-4. Final cohesive vision"""
-
-        consultant_messages = [
-            SystemMessage(content=consultant_agent["system_prompt"]),
-            HumanMessage(content=consultant_prompt)
-        ]
-        
-        consultant_response = model.invoke(consultant_messages)
-        
-        # Add small delay to avoid rate limits
-        time.sleep(0.5)
-        
-        # Step 4: Synthesize final expansion using structured output
-        final_prompt = f"""Based on the team discussion, create the final plot expansion.
-
-Team: {team_name}
-Genre: {genre}
-Original Plot: {plot}
-
-Initial expansion by Lead:
-{expansion_text}
-
-Analyst feedback:
-{analyst_feedback}
-
-Creative additions:
-{consultant_response.content}
-
-Synthesize all inputs into a cohesive, compelling plot expansion that incorporates the best ideas from all team members."""
+Remember to embody the {team_name} team's unique style and perspective."""
 
         try:
             # Get structured final proposal
@@ -258,33 +235,46 @@ Synthesize all inputs into a cohesive, compelling plot expansion that incorporat
             # Fallback to manual construction if structured output fails
             print(f"Warning: Structured output failed for {team_name}, using fallback: {e}")
             
+            # Create fallback data
             return ExpandedPlotProposal(
                 team_name=team_name,
                 model_used=team_config["model_name"],
-                expanded_plot=expansion_text + "\n\n" + consultant_response.content,
+                title="Untitled Story",
+                logline="A compelling story about the given plot.",
+                main_characters=[
+                    CharacterInfo(
+                        name="Protagonist",
+                        role="Main Character",
+                        description="Driven by the central conflict"
+                    )
+                ],
+                plot_summary="Plot expansion failed - using fallback. The story follows the original plot concept.",
+                central_conflict="The main conflict revolves around the core premise.",
+                story_beats=StoryBeats(
+                    opening="The story begins with the discovery",
+                    catalyst="The event that changes everything",
+                    midpoint="A major revelation",
+                    crisis="The darkest moment",
+                    resolution="How it all resolves"
+                ),
+                ending="The story concludes with resolution.",
                 key_elements=[
-                    "Time paradox mystery",
-                    "Identity crisis", 
-                    "Technology vs fate",
-                    "Isolation in space",
-                    "Self-fulfilling prophecy"
+                    "Core mystery",
+                    "Character growth", 
+                    "Technology element"
                 ],
                 potential_arcs=[
-                    "Technician accepts fate vs fights against it",
-                    "Discovery of who sent the transmission",
-                    "Learning to trust others vs going alone"
+                    "Protagonist's journey",
+                    "Supporting character development"
                 ],
                 themes=[
-                    "Free will vs determinism",
-                    "The nature of time",
-                    "Human connection in isolation",
-                    "Technology as savior or destroyer"
+                    "Central theme",
+                    "Secondary theme"
                 ],
-                estimated_complexity=8,
+                estimated_complexity=5,
                 unique_hooks=[
-                    "Death message from the future",
-                    "Satellite tech as unlikely hero",
-                    "One week countdown timer"
+                    "Unique premise",
+                    "Compelling mystery"
                 ]
             )
     
@@ -307,8 +297,26 @@ Synthesize all inputs into a cohesive, compelling plot expansion that incorporat
             proposal = expanded_plots[team_name]
             expansions_text += f"\n{'='*60}\n"
             expansions_text += f"TEAM: {team_name}\n"
-            expansions_text += f"Model: {proposal.model_used}\n\n"
-            expansions_text += f"Expansion:\n{proposal.expanded_plot}\n\n"
+            expansions_text += f"Title: {proposal.title}\n"
+            expansions_text += f"Logline: {proposal.logline}\n\n"
+            
+            # Characters
+            expansions_text += f"Main Characters:\n"
+            for char in proposal.main_characters:
+                expansions_text += f"- {char.name} ({char.role}): {char.description}\n"
+            
+            expansions_text += f"\nPlot Summary:\n{proposal.plot_summary}\n\n"
+            expansions_text += f"Central Conflict: {proposal.central_conflict}\n\n"
+            
+            # Story beats
+            expansions_text += f"Story Beats:\n"
+            expansions_text += f"- Opening: {proposal.story_beats.opening}\n"
+            expansions_text += f"- Catalyst: {proposal.story_beats.catalyst}\n"
+            expansions_text += f"- Midpoint: {proposal.story_beats.midpoint}\n"
+            expansions_text += f"- Crisis: {proposal.story_beats.crisis}\n"
+            expansions_text += f"- Resolution: {proposal.story_beats.resolution}\n\n"
+            
+            expansions_text += f"Ending: {proposal.ending}\n\n"
             expansions_text += f"Key Elements: {', '.join(proposal.key_elements)}\n"
             expansions_text += f"Themes: {', '.join(proposal.themes)}\n"
             expansions_text += f"Unique Hooks: {', '.join(proposal.unique_hooks)}\n"
@@ -600,8 +608,13 @@ Important:
         selected = output.selected_expansion
         print(f"Team: {selected['team_name']}")
         print(f"Model: {selected['model_used']}")
+        print(f"Title: {selected['title']}")
+        print(f"Logline: {selected['logline']}")
+        print(f"Main Characters: {len(selected['main_characters'])}")
+        for char in selected['main_characters'][:2]:  # Show first 2 characters
+            print(f"  - {char['name']} ({char['role']})")
         print(f"Themes: {', '.join(selected['themes'])}")
-        print(f"Unique Hooks: {', '.join(selected['unique_hooks'])}")
+        print(f"Unique Hooks: {', '.join(selected['unique_hooks'][:2])}")  # Show first 2 hooks
         print(f"Complexity: {selected['estimated_complexity']}/10")
     
     def expand_single_plot(self, genre: str, plot: str) -> PlotExpanderOutput:
@@ -624,9 +637,27 @@ Important:
         
         # Step 4: Create output with consolidated selected_expansion
         selected_expansion = {
-            "expanded_plot": winning_expansion.expanded_plot,
             "team_name": winning_expansion.team_name,
             "model_used": winning_expansion.model_used,
+            "title": winning_expansion.title,
+            "logline": winning_expansion.logline,
+            "main_characters": [
+                {
+                    "name": char.name,
+                    "role": char.role,
+                    "description": char.description
+                } for char in winning_expansion.main_characters
+            ],
+            "plot_summary": winning_expansion.plot_summary,
+            "central_conflict": winning_expansion.central_conflict,
+            "story_beats": {
+                "opening": winning_expansion.story_beats.opening,
+                "catalyst": winning_expansion.story_beats.catalyst,
+                "midpoint": winning_expansion.story_beats.midpoint,
+                "crisis": winning_expansion.story_beats.crisis,
+                "resolution": winning_expansion.story_beats.resolution
+            },
+            "ending": winning_expansion.ending,
             "key_elements": winning_expansion.key_elements,
             "potential_arcs": winning_expansion.potential_arcs,
             "themes": winning_expansion.themes,
@@ -672,11 +703,34 @@ Important:
 # Example usage
 if __name__ == "__main__":
     # Example plot list
+    # plots = [
+    #     ("Sci-Fi", "A satellite technician notices a transmission loop that shouldn’t exist—one that contains a recording of her own death, scheduled for next week."),
+    #     ("Mystery", "A historian finds photographs of herself at ancient events she's never attended, each taken decades before she was born."),
+    #     ("Psychological Thriller", "A voice actor starts hearing his own voice in strangers' conversations—saying things he never recorded, predicting events that soon come true.")
+    # ]
+    # plots = [
+    #     ("Horror", "A man moves into a new apartment and realizes the mirrors show a version of his life where he made a single, catastrophic mistake—and that version wants out."),
+    #     ("Sci-Fi", "A cryogenics engineer finds a frozen capsule labeled with his own name and today's date—inside is someone who looks exactly like him, claiming to be from the future."),
+    #     ("Supernatural Mystery", "A journalist investigating a ghost town realizes that the town repopulates every night with people who vanish by dawn—and one of them knows his name.")
+    # ]
     plots = [
-        ("Sci-Fi", "A satellite technician notices a transmission loop that shouldn’t exist—one that contains a recording of her own death, scheduled for next week."),
-        ("Mystery", "A historian finds photographs of herself at ancient events she's never attended, each taken decades before she was born."),
-        ("Psychological Thriller", "A voice actor starts hearing his own voice in strangers' conversations—saying things he never recorded, predicting events that soon come true.")
+        ("Sci-Fi", "A quantum physicist finds a message embedded in cosmic background radiation—signed with her name and dated five minutes into the future."),
+        ("Mystery", "An antique collector finds a diary that describes a murder from 1912—written in his own handwriting."),
+        ("Horror", "A babysitter realizes the nursery rhymes the child sings are recounting her darkest memories, word for word."),
+        ("Fantasy", "A librarian discovers a hidden shelf that lends books no one else can see—each one recounting a life she never lived."),
+        ("Historical Fiction", "A Civil War soldier’s letters start predicting battles days before they occur—signed by a general who never existed."),
+        ("Crime", "A forensic accountant discovers a series of shell companies whose board members have all been missing persons for decades."),
+        ("Psychological Thriller", "A woman wakes up each morning in a new version of her apartment—same layout, but different memories and relationships."),
+        ("Noir", "A private investigator is hired to follow someone—only to realize he's tailing himself in a version of the city that shouldn't exist."),
+        ("Adventure", "A spelunker finds ancient carvings of modern machines deep in a cave system untouched for millennia."),
+        ("Post-Apocalyptic", "A survivor in a flooded Earth finds a functioning lighthouse—run by an AI still waiting for a captain that never returned."),
+        ("Romantic Suspense", "A man starts receiving love letters from someone who claims to have known him in a past life—letters written in his own style."),
+        ("Urban Fantasy", "A delivery driver realizes his route maps out forgotten ley lines—and each package changes the energy of the city."),
+        ("Political Thriller", "An intern discovers that classified files from different eras all refer to the same mysterious advisor—who hasn't aged in seventy years."),
+        ("Supernatural", "A radio repairman hears broadcasts from people who died years ago—reporting news that hasn’t happened yet."),
+        ("Cyberpunk", "A street-level hacker stumbles onto a neural ad-stream that starts inserting memories of a life he never lived—one he wants back.")
     ]
+
 
     
     expander = PlotExpander()
