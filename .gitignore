@@ -6,6 +6,7 @@
 venv/
 ENV/
 env/
+archive/
 
 # Output directories
 forge/
