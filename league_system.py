@@ -377,3 +377,111 @@ class LeagueSystem:
             recommendations.append("✅ System shows good fairness. No immediate concerns.")
         
         return recommendations
+    
+    # League Management Functions
+    def reset_league(self, archive_current: bool = True) -> bool:
+        """Reset league to fresh state, optionally archiving current data"""
+        if archive_current and self.league_data.get("teams") and self.league_data.get("voters"):
+            # Archive current season
+            archive_path = self._archive_current_season()
+            print(f"✓ Current season archived to: {archive_path}")
+        
+        # Load starter template
+        starter_file = Path("league_tables_starter.json")
+        if starter_file.exists():
+            with open(starter_file, 'r') as f:
+                self.league_data = json.load(f)
+                self.league_data["last_updated"] = datetime.now().isoformat()
+                self.save_league_data()
+                print("✓ League reset to fresh state")
+                return True
+        else:
+            print("❌ league_tables_starter.json not found")
+            return False
+    
+    def _archive_current_season(self) -> Path:
+        """Archive current season data"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        season = self.league_data.get("season", 1)
+        archive_name = f"league_archive_season{season}_{timestamp}.json"
+        archive_path = Path("archive") / archive_name
+        
+        # Create archive directory if needed
+        archive_path.parent.mkdir(exist_ok=True)
+        
+        # Save current data to archive
+        with open(archive_path, 'w') as f:
+            json.dump(self.league_data, f, indent=2)
+        
+        return archive_path
+    
+    def start_new_season(self) -> bool:
+        """Start a new season, preserving some stats"""
+        # Archive current season
+        archive_path = self._archive_current_season()
+        print(f"✓ Season {self.league_data.get('season', 1)} archived to: {archive_path}")
+        
+        # Increment season
+        new_season = self.league_data.get("season", 1) + 1
+        
+        # Reset but keep team/voter names
+        team_names = list(self.league_data.get("teams", {}).keys())
+        voter_names = list(self.league_data.get("voters", {}).keys())
+        
+        # Reset to starter
+        self.reset_league(archive_current=False)
+        
+        # Re-add teams and voters with zero stats
+        for team_name in team_names:
+            self.league_data["teams"][team_name] = self._create_team_entry(team_name)
+        
+        for voter_name in voter_names:
+            self.league_data["voters"][voter_name] = self._create_voter_entry(voter_name)
+        
+        self.league_data["season"] = new_season
+        self.save_league_data()
+        
+        print(f"✓ Started season {new_season} with {len(team_names)} teams and {len(voter_names)} voters")
+        return True
+    
+    def prune_old_data(self, keep_last_n: int = 100) -> int:
+        """Prune old vote source data to reduce file size"""
+        pruned_count = 0
+        
+        # Prune team vote sources
+        for team_name, team_data in self.league_data["teams"].items():
+            if "vote_sources" in team_data and len(team_data["vote_sources"]) > keep_last_n:
+                old_count = len(team_data["vote_sources"])
+                team_data["vote_sources"] = team_data["vote_sources"][-keep_last_n:]
+                pruned_count += old_count - keep_last_n
+        
+        # Prune voter voting history  
+        for voter_name, voter_data in self.league_data["voters"].items():
+            if "voting_history" in voter_data and len(voter_data["voting_history"]) > keep_last_n:
+                old_count = len(voter_data["voting_history"])
+                voter_data["voting_history"] = voter_data["voting_history"][-keep_last_n:]
+                pruned_count += old_count - keep_last_n
+        
+        # Prune history
+        if "history" in self.league_data and len(self.league_data["history"]) > keep_last_n:
+            old_count = len(self.league_data["history"])
+            self.league_data["history"] = self.league_data["history"][-keep_last_n:]
+            pruned_count += old_count - keep_last_n
+        
+        if pruned_count > 0:
+            self.save_league_data()
+            print(f"✓ Pruned {pruned_count} old entries to reduce file size")
+        
+        return pruned_count
+    
+    def get_league_stats(self) -> Dict[str, Any]:
+        """Get summary statistics about the league"""
+        stats = {
+            "season": self.league_data.get("season", 1),
+            "total_teams": len(self.league_data.get("teams", {})),
+            "total_voters": len(self.league_data.get("voters", {})),
+            "total_matches": sum(team.get("played", 0) for team in self.league_data.get("teams", {}).values()),
+            "last_updated": self.league_data.get("last_updated", "Never"),
+            "file_size_kb": round(self.league_file.stat().st_size / 1024, 1) if self.league_file.exists() else 0
+        }
+        return stats

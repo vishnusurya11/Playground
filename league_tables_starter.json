@@ -1,0 +1,12 @@
+{
+  "teams": {},
+  "voters": {},
+  "history": [],
+  "season": 1,
+  "last_updated": null,
+  "metadata": {
+    "description": "Empty league tables for fresh installations",
+    "instructions": "Copy this file to league_tables.json to start a new league season",
+    "version": "1.0"
+  }
+}

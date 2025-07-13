@@ -7,6 +7,8 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 import json
 import importlib
+import asyncio
+import time
 from config import config
 from schemas import ExpandedPlotProposal, VotingResults
 from voting_strategies import VotingStrategyFactory
@@ -153,6 +155,91 @@ class TeamManager:
         
         return expansions
     
+    async def _retry_with_backoff(self, coro_func, team_name: str, *args, **kwargs):
+        """Retry async function with exponential backoff on connection errors"""
+        retry_config = config.get_async_retry_config()
+        
+        if not retry_config.get('enabled', True):
+            # Retries disabled, just run once
+            return await coro_func(*args, **kwargs)
+        
+        max_retries = retry_config.get('max_retries', 3)
+        backoff_factor = retry_config.get('backoff_factor', 2.0)
+        initial_delay = retry_config.get('initial_delay', 1.0)
+        retry_on_errors = retry_config.get('retry_on_errors', ['ConnectionError', 'TimeoutError'])
+        
+        last_exception = None
+        
+        for attempt in range(max_retries + 1):
+            try:
+                return await coro_func(*args, **kwargs)
+            except Exception as e:
+                last_exception = e
+                error_str = str(e)
+                error_type = type(e).__name__
+                
+                # Check if this is a retryable error
+                is_retryable = any(
+                    err in error_str or err in error_type 
+                    for err in retry_on_errors
+                )
+                
+                if is_retryable and attempt < max_retries:
+                    delay = initial_delay * (backoff_factor ** attempt)
+                    print(f"⚠️  {team_name} connection error (attempt {attempt + 1}/{max_retries + 1}): {error_type}")
+                    print(f"   Retrying in {delay:.1f} seconds...")
+                    await asyncio.sleep(delay)
+                else:
+                    # Not retryable or max retries reached
+                    raise
+        
+        # Should not reach here, but just in case
+        raise last_exception
+    
+    async def expand_plot_async(self, genre: str, plot: str) -> Dict[str, ExpandedPlotProposal]:
+        """Parallel team expansion - all teams at once with retry logic"""
+        tasks = []
+        for team_name, team in self.expansion_teams.items():
+            # Check if team has async method, otherwise run sync in thread
+            if hasattr(team, 'expand_plot_async'):
+                # Wrap async method with retry logic
+                task = self._retry_with_backoff(team.expand_plot_async, team_name, genre, plot)
+            else:
+                # For sync methods, we can't retry as easily, just run in thread
+                task = asyncio.to_thread(team.expand_plot, genre, plot)
+            tasks.append((team_name, task))
+        
+        # Run all teams in parallel
+        print(f"Running {len(tasks)} teams in parallel...")
+        results = await asyncio.gather(*[task for _, task in tasks], return_exceptions=True)
+        
+        # Build expansions dict
+        expansions = {}
+        fallback_count = 0
+        
+        for (team_name, _), result in zip(tasks, results):
+            if isinstance(result, Exception):
+                print(f"❌ {team_name} failed after retries: {result}")
+                # Try sync fallback as last resort
+                team = self.expansion_teams[team_name]
+                if hasattr(team, 'expand_plot'):
+                    try:
+                        print(f"   Attempting sync fallback for {team_name}...")
+                        expansion = await asyncio.to_thread(team.expand_plot, genre, plot)
+                        expansions[team_name] = expansion
+                        print(f"   ✓ {team_name} sync fallback succeeded")
+                        fallback_count += 1
+                    except Exception as e2:
+                        print(f"   ❌ {team_name} sync fallback also failed: {e2}")
+            else:
+                expansions[team_name] = result
+                print(f"✓ {team_name} completed")
+        
+        if fallback_count > 0:
+            print(f"ℹ️  {fallback_count} teams used sync fallback after async failures")
+        
+        return expansions
+    
     def conduct_voting(self, 
                       expansions: Dict[str, ExpandedPlotProposal],
                       voting_strategy: str = "standard") -> VotingResults:
@@ -174,6 +261,31 @@ class TeamManager:
         
         # Conduct voting
         return strategy.conduct_voting(expansions, voting_agent_list)
+    
+    async def conduct_voting_async(self, 
+                                  expansions: Dict[str, ExpandedPlotProposal],
+                                  voting_strategy: str = "standard") -> VotingResults:
+        """Parallel voting - all voters at once"""
+        # Get voting strategy
+        strategy = VotingStrategyFactory.create(voting_strategy)
+        
+        # Get list of voting agents
+        voting_agent_list = list(self.voting_agents.values())
+        
+        # Ensure odd number of voters if configured
+        if config.get_team_count_limits().get("require_odd_voters", True):
+            if len(voting_agent_list) % 2 == 0 and len(voting_agent_list) > 1:
+                print(f"Adjusting to odd number of voters ({len(voting_agent_list)} -> {len(voting_agent_list) - 1})")
+                voting_agent_list = voting_agent_list[:-1]
+        
+        print(f"\nVoting council of {len(voting_agent_list)} agents evaluating (in parallel)...")
+        
+        # Check if strategy has async support
+        if hasattr(strategy, 'conduct_voting_async'):
+            return await strategy.conduct_voting_async(expansions, voting_agent_list)
+        else:
+            # Fallback: run sync strategy in thread
+            return await asyncio.to_thread(strategy.conduct_voting, expansions, voting_agent_list)
     
     def get_team_count(self) -> Dict[str, int]:
         """Get current team counts"""

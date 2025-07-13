@@ -168,6 +168,76 @@ Important:
             return team_name[6:]
         return team_name
     
+    async def vote_async(self, expansions: Dict[str, ExpandedPlotProposal]) -> VotingResult:
+        """Async version - cast vote using ainvoke for parallel processing"""
+        
+        # Prepare expansions text
+        expansions_text = self._prepare_expansions_text(expansions)
+        
+        # Build voting prompt (same as sync version)
+        prompt = f"""You are {self.name}.
+
+{self.system_prompt}
+
+IMPORTANT VOTING GUIDANCE:
+- As {self.name}, you have a unique perspective: {self.voting_bias}
+- Don't simply choose what seems "best overall" - vote based on YOUR specific expertise and biases
+- It's GOOD to disagree with what others might choose. The council needs diverse opinions.
+- Trust your instincts and professional judgment, even if it goes against conventional wisdom.
+
+Here are all the plot expansions to evaluate (presented in random order):
+{expansions_text}
+
+Your voting criteria and personal weights (these reflect YOUR priorities, not universal standards):
+- Originality ({self.criteria_weights.get('originality', 0.15)*100:.0f}%): How unique and fresh is the concept?
+- Coherence ({self.criteria_weights.get('coherence', 0.15)*100:.0f}%): How well does the plot hold together?
+- Market Potential ({self.criteria_weights.get('market_potential', 0.15)*100:.0f}%): Will readers want to read this?
+- Character Depth ({self.criteria_weights.get('character_depth', 0.15)*100:.0f}%): Are the characters compelling?
+- Thematic Richness ({self.criteria_weights.get('thematic_richness', 0.15)*100:.0f}%): Does it explore meaningful themes?
+- Expandability ({self.criteria_weights.get('expandability', 0.15)*100:.0f}%): Can this sustain a 100k+ word novel?
+
+Remember: Your weights show what YOU value most. A {self.criteria_weights.get('character_depth', 0.15)*100:.0f}% weight on character depth means that's how much it matters to YOU specifically.
+
+Please evaluate all expansions and vote for the best one according to YOUR perspective.
+
+You MUST respond in the following JSON format:
+{{
+  "vote_for_team": "Team Name Here",
+  "reasoning": "Your detailed reasoning here, explaining why THIS choice aligns with YOUR specific perspective and biases",
+  "scores": {{
+    "originality": 8,
+    "coherence": 7,
+    "market_potential": 6,
+    "character_depth": 8,
+    "thematic_richness": 7,
+    "expandability": 8
+  }}
+}}
+
+Important:
+- Choose ONE team from the expansions above
+- Your reasoning should reflect YOUR unique perspective as {self.name}
+- Don't try to be "fair" or "balanced" - be true to your role
+- Rate each criterion from 1-10 based on YOUR standards
+- Your response must be valid JSON only"""
+        
+        try:
+            # Get vote using async
+            response = await self.model.ainvoke(prompt)
+            vote_data = self._parse_vote_response(response.content)
+            
+            return VotingResult(
+                agent_name=self.name,
+                model_used=self.model_name,
+                vote_for_team=self._clean_team_name(vote_data["vote_for_team"]),
+                reasoning=vote_data["reasoning"],
+                score_breakdown=vote_data.get("scores", {})
+            )
+            
+        except Exception as e:
+            print(f"Async error in {self.name} voting: {e}")
+            raise
+    
     def _create_fallback_vote(self, expansions: Dict[str, ExpandedPlotProposal]) -> VotingResult:
         """Create fallback vote if voting fails"""
         team_names = list(expansions.keys())

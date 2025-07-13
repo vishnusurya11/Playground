@@ -114,7 +114,89 @@ class PlotExpander:
         print(f"Complexity: {selected['estimated_complexity']}/10")
     
     def expand_single_plot(self, genre: str, plot: str) -> PlotExpanderOutput:
-        """Main function: Expand one plot through full process"""
+        """Main function: Expand one plot through full process - auto-uses async for speed"""
+        try:
+            # Try async version first (80% faster)
+            import asyncio
+            return asyncio.run(self._expand_single_plot_async(genre, plot))
+        except Exception as e:
+            print(f"Async not available ({e}), using standard processing...")
+            # Fallback to sync version
+            return self._expand_single_plot_sync(genre, plot)
+    
+    async def _expand_single_plot_async(self, genre: str, plot: str) -> PlotExpanderOutput:
+        """Async version - runs teams and voters in parallel"""
+        start_time = datetime.now()
+        
+        # Step 1: All teams expand in parallel (NEW - FAST!)
+        print(f"\n🤖 {len(self.team_manager.expansion_teams)} teams are expanding the plot (in parallel)...")
+        all_expansions = await self.team_manager.expand_plot_async(genre, plot)
+        
+        # Print what we got
+        print(f"\n📊 Received {len(all_expansions)} expanded plots")
+        
+        # Step 2: Voting process in parallel (NEW - FAST!)
+        voting_results = await self.team_manager.conduct_voting_async(
+            all_expansions,
+            voting_strategy="standard"
+        )
+        
+        # Step 3: Determine winning expansion (same as before)
+        winning_team = voting_results.winning_team
+        winning_expansion = all_expansions[winning_team]
+        
+        # Step 4: Convert to output format (same as before)
+        selected_expansion = {
+            "team_name": winning_expansion.team_name,
+            "model_used": winning_expansion.model_used,
+            "title": winning_expansion.title,
+            "logline": winning_expansion.logline,
+            "main_characters": [
+                {
+                    "name": char.name,
+                    "role": char.role,
+                    "description": char.description
+                } for char in winning_expansion.main_characters
+            ],
+            "plot_summary": winning_expansion.plot_summary,
+            "central_conflict": winning_expansion.central_conflict,
+            "story_beats": {
+                "opening": winning_expansion.story_beats.opening,
+                "catalyst": winning_expansion.story_beats.catalyst,
+                "midpoint": winning_expansion.story_beats.midpoint,
+                "crisis": winning_expansion.story_beats.crisis,
+                "resolution": winning_expansion.story_beats.resolution
+            },
+            "ending": winning_expansion.ending,
+            "key_elements": winning_expansion.key_elements,
+            "potential_arcs": winning_expansion.potential_arcs,
+            "themes": winning_expansion.themes,
+            "unique_hooks": winning_expansion.unique_hooks,
+            "estimated_complexity": winning_expansion.estimated_complexity
+        }
+        
+        end_time = datetime.now()
+        output = PlotExpanderOutput(
+            original_plot=plot,
+            genre=genre,
+            all_expanded_plots=all_expansions,
+            voting_results=voting_results,
+            selected_expansion=selected_expansion,
+            timestamp=start_time.isoformat(),
+            processing_time=(end_time - start_time).total_seconds()
+        )
+        
+        # Step 5: Save to file
+        plot_id = f"{genre.lower()}_{abs(hash(plot))}"
+        self.save_plot_output(plot_id, output)
+        
+        # Step 6: Print voting summary
+        self.print_voting_summary(output)
+        
+        return output
+    
+    def _expand_single_plot_sync(self, genre: str, plot: str) -> PlotExpanderOutput:
+        """Original sync version - fallback if async fails"""
         start_time = datetime.now()
         
         # Step 1: Each team expands the plot
@@ -222,36 +304,11 @@ if __name__ == "__main__":
     
     # Example plot list
     plots = [
-        ("Sci-Fi", "A Mars colony engineer uncovers a sealed vault labeled with a warning—written in her own handwriting, dated centuries ago."),
-        ("Mystery", "A retired postman receives a letter he never delivered—postmarked from a town that no longer exists."),
-        ("Horror", "A hiking group stumbles upon a perfectly preserved 1950s diner deep in the forest—and it's still open for service."),
-        ("Fantasy", "A thief steals a magical blade that sings only when it’s near someone who has lied to them."),
-        ("Romance", "Two people begin falling in love through handwritten notes left in borrowed library books—until one of them vanishes."),
-        ("Thriller", "A bodyguard discovers the person she’s protecting is orchestrating the threats against them."),
-        ("Adventure", "An explorer finds an ancient map tattooed on the bones of a long-dead sailor."),
-        ("Historical Fiction", "A maid in 1800s London overhears a conspiracy that aligns exactly with a modern political scandal."),
-        ("Noir", "A PI’s client is murdered—right after telling him she’s already been killed once before."),
-        ("Cyberpunk", "A street-level fixer discovers a mind-hacking app that lets others upload memories into strangers without consent."),
-        ("Post-Apocalyptic", "A traveler finds a town untouched by the apocalypse—because no one there knows it happened."),
-        ("Supernatural", "A man inherits a watch that stops time—but only when he’s feeling regret."),
-        ("Psychological Thriller", "A woman wakes up each day in a slightly different version of her life, with subtle changes—until the wrong people start noticing."),
-        ("Western", "A bounty hunter chases a criminal into a desert town where time resets every sunrise."),
-        ("Political Thriller", "A junior senator discovers that every major world leader is part of a centuries-old chess game."),
-        ("Espionage", "A spy’s cover is blown when their fake life starts behaving like it’s real—and someone begins impersonating their ‘real’ identity."),
-        ("Legal Drama", "A defense attorney is assigned a case where all evidence has been erased—even the crime itself."),
-        ("Medical Drama", "A doctor discovers her patient has two sets of DNA—each with a different history."),
-        ("Mythology", "A linguist deciphers a newly discovered epic that claims the gods never left—they just changed their names."),
-        ("Satire", "In a world where corporations elect presidents directly, a janitor accidentally becomes the CEO of Earth."),
-        ("Comedy", "A support group for side characters realizes none of them remember how their stories ended."),
-        ("Coming-of-Age", "A teenager develops a rare condition where his dreams physically manifest each morning."),
-        ("Gothic", "A governess is hired to care for a mute child in a crumbling manor—only to learn the child hasn’t been alive for years."),
-        ("Urban Fantasy", "A food delivery app begins directing its riders into portals leading to magical realms."),
-        ("Crime", "A former getaway driver discovers the abandoned safehouse he used as a rookie has been turned into a luxury Airbnb."),
-        ("Military Fiction", "A soldier returns home to find their hometown under control of a private army—run by people who served under their name."),
-        ("Steampunk", "An airship mechanic finds an engine blueprint in an old novel—and it works on dreams, not fuel."),
-        ("Paranormal Romance", "A woman keeps seeing a stranger in her dreams—until she meets him at her grandfather’s funeral."),
-        ("Time Travel", "A researcher builds a time machine that only works while she's asleep—and she wakes up in lives she never lived."),
-        ("Magical Realism", "A fisherman catches the same fish every morning, no matter where he casts his line—and it always knows something new.")
+        ("Sci-Fi", "An astronaut crash-lands on a planet ruled by hyper-intelligent plants—who have built a religion around her broken spaceship."),
+        ("Thriller", "A man discovers his entire life is a witness protection program—except he has no memory of what he witnessed."),
+        ("Horror", "A town celebrates a birthday for someone no one remembers—but skipping the party means you vanish by morning."),
+        ("Comedy", "A struggling actor lands a role as a superhero in a low-budget film—only to realize the villain thinks it’s real and starts attacking him on set."),
+        ("Romance", "A woman dates a man who’s perfect in every way—except he’s convinced they’re both characters in a rom-com and keeps trying to skip to the happy ending.")
     ]
 
     

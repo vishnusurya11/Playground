@@ -147,6 +147,21 @@ TEAM_CONFIG = {
         "min_voting_agents": 3,
         "max_voting_agents": 15,
         "require_odd_voters": True  # Ensure odd number for tie-breaking
+    },
+    # Async retry configuration
+    "async_retry": {
+        "enabled": True,
+        "max_retries": 3,
+        "backoff_factor": 2.0,  # Exponential backoff: 1s, 2s, 4s
+        "initial_delay": 1.0,   # Initial retry delay in seconds
+        "retry_on_errors": [
+            "ConnectionError",
+            "TimeoutError", 
+            "ClientConnectorError",
+            "ServerDisconnectedError",
+            "Connection aborted",
+            "Connection reset"
+        ]
     }
 }
 
@@ -240,6 +255,16 @@ class Config:
     def get_voting_criteria(self) -> Dict[str, Dict[str, Any]]:
         """Get voting criteria configuration"""
         return self.custom_config.get('voting_criteria', VOTING_CRITERIA)
+    
+    def get_async_retry_config(self) -> Dict[str, Any]:
+        """Get async retry configuration"""
+        return self.custom_config.get('async_retry', TEAM_CONFIG.get('async_retry', {
+            'enabled': True,
+            'max_retries': 3,
+            'backoff_factor': 2.0,
+            'initial_delay': 1.0,
+            'retry_on_errors': ['ConnectionError', 'TimeoutError']
+        }))
     
     def save_custom_config(self, config_dict: Dict[str, Any]):
         """Save custom configuration to file"""

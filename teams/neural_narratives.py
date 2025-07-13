@@ -93,6 +93,57 @@ Remember to embody the Narrative Architects team's innovative structural approac
             expansion.unique_hooks.append("Innovative narrative structure")
         return expansion
     
+    async def expand_plot_async(self, genre: str, plot: str) -> ExpandedPlotProposal:
+        """Async version - expand plot using ainvoke for parallel processing"""
+        # Team-specific creative direction
+        creative_direction = """TEAM IDENTITY: You are Neural Narratives - specialists in interconnected, non-linear storytelling.
+Your strength lies in weaving multiple perspectives, timelines, and narrative layers into cohesive wholes.
+You excel at creating stories that reveal themselves like puzzles, with each piece changing the meaning of the whole.
+AVOID: Linear, predictable narratives. Embrace complexity and interconnection."""
+        
+        # Build expansion prompt
+        prompt = f"""{creative_direction}
+
+Team: {self.name}
+Genre: {genre}
+Original Plot: {plot}
+
+As Neural Narratives, create a structurally innovative plot expansion.
+
+Provide a complete story expansion with:
+- A creative title that reflects your team's approach
+- A compelling one-sentence logline (max 30 words)
+- 3-4 main characters with names, roles, and motivations
+- A plot summary (300-400 words) that expands the original concept
+- The central conflict and what's at stake
+- Five key story beats (opening, catalyst, midpoint, crisis, resolution)
+- How the story ends
+- 3-5 key story elements that drive the plot
+- 2-3 potential character arcs
+- Major themes to explore
+- What makes this version unique (3-5 hooks)
+- Complexity rating from 1-10
+
+Remember to embody Neural Narratives' innovative structural approach."""
+        
+        # Use structured output with async
+        structured_model = self.model.with_structured_output(ExpandedPlotProposal)
+        
+        try:
+            # Get expansion using async
+            expansion = await structured_model.ainvoke(prompt)
+            
+            # Ensure team name and model are set
+            expansion.team_name = self.name
+            expansion.model_used = self.model_name
+            
+            # Add any team-specific post-processing
+            return self._post_process_expansion(expansion)
+            
+        except Exception as e:
+            print(f"Async error in {self.name} expansion: {e}")
+            raise
+    
     def _create_fallback_expansion(self, genre: str, plot: str) -> ExpandedPlotProposal:
         """Create fallback expansion if main process fails"""
         return ExpandedPlotProposal(

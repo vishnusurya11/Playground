@@ -246,6 +246,48 @@ uv run python test_single_plot.py
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 🏆 League Management
+
+EpicWeaver includes a competitive league system that tracks team and voter performance over time. The league data is stored in `league_tables.json`.
+
+### League Data Persistence
+
+**Important**: `league_tables.json` contains your competitive history and should be committed to version control if you want to preserve rankings across machines.
+
+### Managing League Data
+
+Use the `manage_league.py` utility:
+
+```bash
+# View league statistics
+uv run python manage_league.py stats
+
+# Start a new season (archives current data)
+uv run python manage_league.py new-season
+
+# Reset to fresh league (archives current data)
+uv run python manage_league.py reset
+
+# Prune old data to reduce file size
+uv run python manage_league.py prune --keep 50
+
+# Reset without archiving
+uv run python manage_league.py reset --no-archive
+```
+
+### Fresh Installation
+
+For a fresh start on a new machine:
+1. Copy `league_tables_starter.json` to `league_tables.json`
+2. Or run `uv run python manage_league.py reset --no-archive`
+
+### Data Management Tips
+
+- League files can grow large over time (500KB+)
+- Use `prune` command to keep file size manageable
+- Archives are saved to `archive/` directory
+- Each season can be archived separately
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

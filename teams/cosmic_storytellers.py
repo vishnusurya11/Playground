@@ -93,6 +93,59 @@ Remember to embody the Visionary Scribes team's unique style and perspective."""
             expansion.estimated_complexity = 7  # They tend toward complex narratives
         return expansion
     
+    async def expand_plot_async(self, genre: str, plot: str) -> ExpandedPlotProposal:
+        """Async version - expand plot using ainvoke for parallel processing"""
+        # Team-specific creative direction
+        team_identity = "Cosmic Storytellers" if "Cosmic" in self.name else "Visionary Scribes"
+        creative_direction = f"""TEAM IDENTITY: You are the {team_identity} - masters of expansive, imaginative storytelling.
+Your strength lies in creating rich, detailed worlds with complex character relationships and ambitious scope.
+You excel at finding the epic potential in any story seed, transforming simple concepts into sweeping narratives.
+AVOID: Being too generic or safe. Push boundaries while maintaining coherence."""
+        
+        # Build expansion prompt
+        prompt = f"""{creative_direction}
+
+Team: {self.name}
+Genre: {genre}
+Original Plot: {plot}
+
+As the Visionary Scribes, create a compelling plot expansion with your team's unique perspective.
+
+Provide a complete story expansion with:
+- A creative title that reflects your team's approach
+- A compelling one-sentence logline (max 30 words)
+- 3-4 main characters with names, roles, and motivations
+- A plot summary (300-400 words) that expands the original concept
+- The central conflict and what's at stake
+- Five key story beats (opening, catalyst, midpoint, crisis, resolution)
+- How the story ends
+- 3-5 key story elements that drive the plot
+- 2-3 potential character arcs
+- Major themes to explore
+- What makes this version unique (3-5 hooks)
+- Complexity rating from 1-10
+
+Remember to embody the Visionary Scribes team's unique style and perspective."""
+        
+        # Use structured output with async
+        structured_model = self.model.with_structured_output(ExpandedPlotProposal)
+        
+        try:
+            # Get expansion using async
+            expansion = await structured_model.ainvoke(prompt)
+            
+            # Ensure team name and model are set
+            expansion.team_name = self.name
+            expansion.model_used = self.model_name
+            
+            # Add any team-specific post-processing
+            return self._post_process_expansion(expansion)
+            
+        except Exception as e:
+            print(f"Async error in {self.name} expansion: {e}")
+            # Re-raise to let the gather handle it
+            raise
+    
     def _create_fallback_expansion(self, genre: str, plot: str) -> ExpandedPlotProposal:
         """Create fallback expansion if main process fails"""
         return ExpandedPlotProposal(

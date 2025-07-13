@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Any
 from schemas import ExpandedPlotProposal, VotingResults, VotingResult
 from collections import defaultdict
+import asyncio
 
 
 class VotingStrategy(ABC):
@@ -27,6 +28,76 @@ class StandardVoting(VotingStrategy):
                       expansions: Dict[str, ExpandedPlotProposal], 
                       voting_agents: List[Any]) -> VotingResults:
         """Each agent votes once, majority wins"""
+        
+        # Try async voting if available
+        try:
+            import asyncio
+            return asyncio.run(self._conduct_voting_async(expansions, voting_agents))
+        except Exception as e:
+            print(f"Async voting not available ({e}), using standard voting...")
+            return self._conduct_voting_sync(expansions, voting_agents)
+    
+    async def _conduct_voting_async(self, 
+                                   expansions: Dict[str, ExpandedPlotProposal], 
+                                   voting_agents: List[Any]) -> VotingResults:
+        """Async version - conduct voting in parallel"""
+        
+        vote_tally = {team_name: 0 for team_name in expansions.keys()}
+        
+        # Prepare voting tasks
+        print(f"\nCollecting votes from {len(voting_agents)} agents (async parallel)...")
+        tasks = []
+        for i, agent in enumerate(voting_agents, 1):
+            if hasattr(agent, 'vote_async'):
+                task = agent.vote_async(expansions)
+            else:
+                # Fallback to sync in thread
+                task = asyncio.to_thread(agent.vote, expansions)
+            tasks.append((i, agent.name, task))
+        
+        # Execute all voting tasks in parallel
+        results = await asyncio.gather(*[task for _, _, task in tasks], return_exceptions=True)
+        
+        # Process results
+        votes = []
+        for (i, agent_name, _), result in zip(tasks, results):
+            if isinstance(result, Exception):
+                print(f"    ❌ Error getting vote from {agent_name}: {result}")
+            else:
+                vote = result
+                if vote.vote_for_team in vote_tally:
+                    vote_tally[vote.vote_for_team] += 1
+                    votes.append(vote)
+                    print(f"    ✓ {agent_name} voted for: {vote.vote_for_team}")
+                else:
+                    print(f"    ⚠ {agent_name} voted for invalid team: {vote.vote_for_team}")
+                    print(f"      Valid teams: {list(vote_tally.keys())}")
+        
+        print(f"  Collected {len(votes)} votes successfully")
+        
+        # Determine winner
+        winning_team = max(vote_tally, key=vote_tally.get)
+        
+        # Handle ties by looking at total scores
+        tied_teams = [team for team, count in vote_tally.items() if count == vote_tally[winning_team]]
+        if len(tied_teams) > 1:
+            winning_team = self._break_tie(tied_teams, votes)
+        
+        # Generate voting summary
+        voting_summary = self._generate_voting_summary(votes, vote_tally, expansions)
+        
+        return VotingResults(
+            individual_votes=votes,
+            vote_tally=vote_tally,
+            winning_team=winning_team,
+            total_votes=len(votes),
+            voting_summary=voting_summary
+        )
+    
+    def _conduct_voting_sync(self, 
+                            expansions: Dict[str, ExpandedPlotProposal], 
+                            voting_agents: List[Any]) -> VotingResults:
+        """Sync version - original sequential voting"""
         
         votes = []
         vote_tally = {team_name: 0 for team_name in expansions.keys()}
