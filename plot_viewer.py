@@ -677,6 +677,215 @@ def display_review_mode():
                 st.metric("Complexity", f"{selected['estimated_complexity']}/10")
                 st.metric("Processing Time", f"{plot_data['processing_time']:.2f}s")
 
+def display_league_tables(analytics: PlotAnalytics):
+    """Display competitive league tables"""
+    st.markdown("## 🏆 League Tables")
+    
+    # Team League Table
+    st.markdown("### Team League Standings")
+    
+    team_table = analytics.get_team_league_table()
+    
+    if team_table:
+        # Create visual league table
+        st.markdown("---")
+        
+        # Header
+        cols = st.columns([0.5, 2.5, 0.8, 0.8, 0.8, 1, 1.5, 0.8, 1.2])
+        cols[0].markdown("**Pos**")
+        cols[1].markdown("**Team**")
+        cols[2].markdown("**P**")
+        cols[3].markdown("**W**")
+        cols[4].markdown("**2nd**")
+        cols[5].markdown("**Pts**")
+        cols[6].markdown("**Form**")
+        cols[7].markdown("**Bias**")
+        cols[8].markdown("**Status**")
+        
+        # Add cutoff line after position 5
+        for idx, team in enumerate(team_table):
+            # Cutoff line
+            if idx == 5:
+                st.markdown("---")
+                st.markdown("##### 🚫 Relegation Zone")
+            
+            cols = st.columns([0.5, 2.5, 0.8, 0.8, 0.8, 1, 1.5, 0.8, 1.2])
+            
+            # Position with change indicator
+            pos_change = {"up": "↑", "down": "↓", "same": "→", "new": "🆕"}
+            change_icon = pos_change.get(team["position_change"], "")
+            cols[0].markdown(f"{team['position']} {change_icon}")
+            
+            # Team name with zone coloring
+            if team['position'] == 1:
+                cols[1].markdown(f"🥇 **{team['name']}**")
+            elif team['position'] <= 5:
+                cols[1].markdown(f"**{team['name']}**")
+            else:
+                cols[1].markdown(f"_{team['name']}_")
+            
+            # Stats
+            cols[2].markdown(str(team['played']))
+            cols[3].markdown(str(team['won']))
+            cols[4].markdown(str(team['second']))
+            cols[5].markdown(f"**{team['points']}**")
+            
+            # Form with color coding
+            form_display = ""
+            for result in team['form']:
+                if result == 'W':
+                    form_display += "🟢"
+                elif result == 'S':
+                    form_display += "🟡"
+                else:
+                    form_display += "🔴"
+            cols[6].markdown(form_display)
+            
+            # Bias score with warning
+            bias_score = team['bias_score']
+            if bias_score > 0.6:
+                cols[7].markdown(f"⚠️ {bias_score:.2f}")
+            else:
+                cols[7].markdown(f"{bias_score:.2f}")
+            
+            # Status
+            if team['status'] == 'active':
+                cols[8].markdown("✅ Active")
+            else:
+                cols[8].markdown("⏸️ Bench")
+        
+        # Team stats summary
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**Active Teams:** Top {analytics.league_system.config['active_team_slots']} teams participate in plot expansion")
+        with col2:
+            st.info(f"**Points System:** Win = 3pts, 2nd = 1pt")
+    else:
+        st.warning("Not enough data for team league table (min 3 participations required)")
+    
+    # Voter League Table
+    st.markdown("### Voter League Standings")
+    
+    voter_table = analytics.get_voter_league_table()
+    
+    if voter_table:
+        st.markdown("---")
+        
+        # Header
+        cols = st.columns([0.5, 2.5, 0.8, 0.8, 1, 1, 1.5, 0.8, 1.2])
+        cols[0].markdown("**Pos**")
+        cols[1].markdown("**Voter**")
+        cols[2].markdown("**V**")
+        cols[3].markdown("**✓**")
+        cols[4].markdown("**Pts**")
+        cols[5].markdown("**Acc%**")
+        cols[6].markdown("**Form**")
+        cols[7].markdown("**Bias**")
+        cols[8].markdown("**Status**")
+        
+        # Add cutoff line after position 11
+        for idx, voter in enumerate(voter_table):
+            if idx == 11:
+                st.markdown("---")
+                st.markdown("##### 🚫 Bench Zone")
+            
+            cols = st.columns([0.5, 2.5, 0.8, 0.8, 1, 1, 1.5, 0.8, 1.2])
+            
+            # Position with change
+            pos_change = {"up": "↑", "down": "↓", "same": "→", "new": "🆕"}
+            change_icon = pos_change.get(voter["position_change"], "")
+            cols[0].markdown(f"{voter['position']} {change_icon}")
+            
+            # Voter name
+            if voter['position'] == 1:
+                cols[1].markdown(f"🥇 **{voter['name']}**")
+            elif voter['position'] <= 11:
+                cols[1].markdown(f"**{voter['name']}**")
+            else:
+                cols[1].markdown(f"_{voter['name']}_")
+            
+            # Stats
+            cols[2].markdown(str(voter['votes_cast']))
+            cols[3].markdown(str(voter['correct_votes']))
+            cols[4].markdown(f"**{voter['points']}**")
+            cols[5].markdown(f"{voter['accuracy_rate']:.1f}%")
+            
+            # Form
+            form_display = ""
+            for result in voter['form']:
+                if result == 'C':
+                    form_display += "🟢"
+                elif result == 'N':
+                    form_display += "🟡"
+                else:
+                    form_display += "🔴"
+            cols[6].markdown(form_display)
+            
+            # Bias
+            bias_score = voter['bias_score']
+            if bias_score > 0.6:
+                cols[7].markdown(f"⚠️ {bias_score:.2f}")
+            else:
+                cols[7].markdown(f"{bias_score:.2f}")
+            
+            # Status
+            if voter['status'] == 'active':
+                cols[8].markdown("✅ Active")
+            else:
+                cols[8].markdown("⏸️ Bench")
+        
+        st.markdown("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**Active Voters:** Top {analytics.league_system.config['active_voter_slots']} voters participate in voting")
+        with col2:
+            st.info(f"**Points System:** Correct = 3pts, 2nd = 1pt, +1 for consensus")
+    else:
+        st.warning("Not enough data for voter league table (min 3 participations required)")
+    
+    # Fairness Report
+    st.markdown("### 🎯 Fairness & Bias Report")
+    
+    fairness_report = analytics.get_fairness_report()
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        fairness_score = fairness_report['overall_fairness_score']
+        if fairness_score >= 80:
+            st.success(f"**Fairness Score:** {fairness_score:.1f}%")
+        elif fairness_score >= 60:
+            st.warning(f"**Fairness Score:** {fairness_score:.1f}%")
+        else:
+            st.error(f"**Fairness Score:** {fairness_score:.1f}%")
+    
+    with col2:
+        st.metric("Biased Teams", len(fairness_report['biased_teams']))
+    
+    with col3:
+        st.metric("Biased Voters", len(fairness_report['biased_voters']))
+    
+    # Recommendations
+    if fairness_report['recommendations']:
+        st.markdown("**Recommendations:**")
+        for rec in fairness_report['recommendations']:
+            st.markdown(f"• {rec}")
+    
+    # Legend
+    with st.expander("📖 Legend"):
+        st.markdown("""
+        **Positions:** ↑ Up | ↓ Down | → Same | 🆕 New
+        
+        **Form:** 🟢 Win/Correct | 🟡 2nd/Near | 🔴 Loss/Wrong
+        
+        **Bias Score:** Concentration of votes (0=diverse, 1=concentrated)
+        
+        **Columns:**
+        - P = Played, W = Won, 2nd = Second Place
+        - V = Votes Cast, ✓ = Correct Votes
+        - Acc% = Accuracy Rate
+        """)
+
 def display_analytics_mode():
     """Display analytics interface"""
     # Initialize analytics
@@ -688,7 +897,7 @@ def display_analytics_mode():
         return
     
     # Analytics tabs
-    tab1, tab2, tab3 = st.tabs(["📊 Team Analytics", "🗳️ Voter Analytics", "📈 Overall Statistics"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Team Analytics", "🗳️ Voter Analytics", "📈 Overall Statistics", "🏆 League Tables"])
     
     with tab1:
         display_team_analytics(analytics)
@@ -698,6 +907,9 @@ def display_analytics_mode():
     
     with tab3:
         display_overall_statistics(analytics)
+    
+    with tab4:
+        display_league_tables(analytics)
     
     # Additional analytics in sidebar
     with st.sidebar:

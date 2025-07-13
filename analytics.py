@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Any, Tuple
 import pandas as pd
+from league_system import LeagueSystem
 
 
 class PlotAnalytics:
@@ -16,7 +17,9 @@ class PlotAnalytics:
     def __init__(self, forge_dir: str = "forge"):
         self.forge_dir = Path(forge_dir)
         self.plots_data = []
+        self.league_system = LeagueSystem()
         self._load_all_plots()
+        self._update_league_standings()
     
     def _load_all_plots(self):
         """Load all plot JSON files from forge directory"""
@@ -38,6 +41,17 @@ class PlotAnalytics:
         
         # Sort by timestamp
         self.plots_data.sort(key=lambda x: x['_timestamp'], reverse=True)
+    
+    def _update_league_standings(self):
+        """Update league standings based on all plots"""
+        # Process each plot in chronological order for accurate standings
+        for plot in reversed(self.plots_data):  # Process oldest first
+            plot_id = plot['_file_name']
+            self.league_system.update_team_result(plot_id, plot['voting_results'])
+            self.league_system.update_voter_result(plot_id, plot['voting_results'])
+        
+        # Save updated standings
+        self.league_system.save_league_data()
     
     def get_team_stats(self) -> Dict[str, Dict[str, Any]]:
         """Calculate comprehensive team statistics"""
@@ -342,3 +356,15 @@ class PlotAnalytics:
             })
         
         return timeline
+    
+    def get_team_league_table(self) -> List[Dict[str, Any]]:
+        """Get team league table from league system"""
+        return self.league_system.get_team_league_table()
+    
+    def get_voter_league_table(self) -> List[Dict[str, Any]]:
+        """Get voter league table from league system"""
+        return self.league_system.get_voter_league_table()
+    
+    def get_fairness_report(self) -> Dict[str, Any]:
+        """Get fairness and bias analysis report"""
+        return self.league_system.get_fairness_report()
