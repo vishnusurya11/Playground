@@ -222,22 +222,38 @@ if __name__ == "__main__":
     
     # Example plot list
     plots = [
-        ("Sci-Fi", "A quantum physicist finds a message embedded in cosmic background radiation—signed with her name and dated five minutes into the future."),
-        ("Mystery", "An antique collector finds a diary that describes a murder from 1912—written in his own handwriting."),
-        ("Horror", "A babysitter realizes the nursery rhymes the child sings are recounting her darkest memories, word for word."),
-        ("Fantasy", "A librarian discovers a hidden shelf that lends books no one else can see—each one recounting a life she never lived."),
-        ("Historical Fiction", "A Civil War soldier's letters start predicting battles days before they occur—signed by a general who never existed."),
-        ("Crime", "A forensic accountant discovers a series of shell companies whose board members have all been missing persons for decades."),
-        ("Psychological Thriller", "A woman wakes up each morning in a new version of her apartment—same layout, but different memories and relationships."),
-        ("Noir", "A private investigator is hired to follow someone—only to realize he's tailing himself in a version of the city that shouldn't exist."),
-        ("Adventure", "A spelunker finds ancient carvings of modern machines deep in a cave system untouched for millennia."),
-        ("Post-Apocalyptic", "A survivor in a flooded Earth finds a functioning lighthouse—run by an AI still waiting for a captain that never returned."),
-        ("Romantic Suspense", "A man starts receiving love letters from someone who claims to have known him in a past life—letters written in his own style."),
-        ("Urban Fantasy", "A delivery driver realizes his route maps out forgotten ley lines—and each package changes the energy of the city."),
-        ("Political Thriller", "An intern discovers that classified files from different eras all refer to the same mysterious advisor—who hasn't aged in seventy years."),
-        ("Supernatural", "A radio repairman hears broadcasts from people who died years ago—reporting news that hasn't happened yet."),
-        ("Cyberpunk", "A street-level hacker stumbles onto a neural ad-stream that starts inserting memories of a life he never lived—one he wants back.")
+        ("Sci-Fi", "A Mars colony engineer uncovers a sealed vault labeled with a warning—written in her own handwriting, dated centuries ago."),
+        ("Mystery", "A retired postman receives a letter he never delivered—postmarked from a town that no longer exists."),
+        ("Horror", "A hiking group stumbles upon a perfectly preserved 1950s diner deep in the forest—and it's still open for service."),
+        ("Fantasy", "A thief steals a magical blade that sings only when it’s near someone who has lied to them."),
+        ("Romance", "Two people begin falling in love through handwritten notes left in borrowed library books—until one of them vanishes."),
+        ("Thriller", "A bodyguard discovers the person she’s protecting is orchestrating the threats against them."),
+        ("Adventure", "An explorer finds an ancient map tattooed on the bones of a long-dead sailor."),
+        ("Historical Fiction", "A maid in 1800s London overhears a conspiracy that aligns exactly with a modern political scandal."),
+        ("Noir", "A PI’s client is murdered—right after telling him she’s already been killed once before."),
+        ("Cyberpunk", "A street-level fixer discovers a mind-hacking app that lets others upload memories into strangers without consent."),
+        ("Post-Apocalyptic", "A traveler finds a town untouched by the apocalypse—because no one there knows it happened."),
+        ("Supernatural", "A man inherits a watch that stops time—but only when he’s feeling regret."),
+        ("Psychological Thriller", "A woman wakes up each day in a slightly different version of her life, with subtle changes—until the wrong people start noticing."),
+        ("Western", "A bounty hunter chases a criminal into a desert town where time resets every sunrise."),
+        ("Political Thriller", "A junior senator discovers that every major world leader is part of a centuries-old chess game."),
+        ("Espionage", "A spy’s cover is blown when their fake life starts behaving like it’s real—and someone begins impersonating their ‘real’ identity."),
+        ("Legal Drama", "A defense attorney is assigned a case where all evidence has been erased—even the crime itself."),
+        ("Medical Drama", "A doctor discovers her patient has two sets of DNA—each with a different history."),
+        ("Mythology", "A linguist deciphers a newly discovered epic that claims the gods never left—they just changed their names."),
+        ("Satire", "In a world where corporations elect presidents directly, a janitor accidentally becomes the CEO of Earth."),
+        ("Comedy", "A support group for side characters realizes none of them remember how their stories ended."),
+        ("Coming-of-Age", "A teenager develops a rare condition where his dreams physically manifest each morning."),
+        ("Gothic", "A governess is hired to care for a mute child in a crumbling manor—only to learn the child hasn’t been alive for years."),
+        ("Urban Fantasy", "A food delivery app begins directing its riders into portals leading to magical realms."),
+        ("Crime", "A former getaway driver discovers the abandoned safehouse he used as a rookie has been turned into a luxury Airbnb."),
+        ("Military Fiction", "A soldier returns home to find their hometown under control of a private army—run by people who served under their name."),
+        ("Steampunk", "An airship mechanic finds an engine blueprint in an old novel—and it works on dreams, not fuel."),
+        ("Paranormal Romance", "A woman keeps seeing a stranger in her dreams—until she meets him at her grandfather’s funeral."),
+        ("Time Travel", "A researcher builds a time machine that only works while she's asleep—and she wakes up in lives she never lived."),
+        ("Magical Realism", "A fisherman catches the same fish every morning, no matter where he casts his line—and it always knows something new.")
     ]
+
     
     expander = PlotExpander()
     results = expander.expand_plot_list(plots)
