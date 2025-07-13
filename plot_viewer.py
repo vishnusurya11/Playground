@@ -101,7 +101,19 @@ def load_plot_files():
 def load_plot_data(file_path):
     try:
         with open(file_path, 'r') as f:
-            return json.load(f)
+            data = json.load(f)
+            
+        # Validate required fields
+        required_fields = ['genre', 'original_plot', 'all_expanded_plots', 'voting_results']
+        missing_fields = [field for field in required_fields if field not in data]
+        
+        if missing_fields:
+            st.warning(f"File is missing fields: {', '.join(missing_fields)}")
+            
+        return data
+    except json.JSONDecodeError as e:
+        st.error(f"Invalid JSON in file: {e}")
+        return None
     except Exception as e:
         st.error(f"Error loading file: {e}")
         return None
@@ -243,6 +255,8 @@ def main():
     plot_files = load_plot_files()
     
     if not plot_files:
+        st.error("No plot files found in the forge directory.")
+        st.info("Run `uv run python plot_expander.py` to generate some plots first!")
         return
     
     # Sidebar navigation
@@ -349,13 +363,32 @@ def main():
         
         # Team expansions in tabs
         st.markdown("---")
+        st.markdown("## 🎭 Team Expansions")
+        
         team_names = list(plot_data['all_expanded_plots'].keys())
-        team_tabs = st.tabs(team_names)
+        
+        # Add team count info
+        st.info(f"📊 {len(team_names)} teams competed for this plot")
+        
+        # Create tabs with better labels
+        tab_labels = []
+        for team_name in team_names:
+            # Add winner emoji to winning team
+            if team_name == plot_data['voting_results']['winning_team']:
+                tab_labels.append(f"🏆 {team_name}")
+            else:
+                tab_labels.append(team_name)
+        
+        team_tabs = st.tabs(tab_labels)
         
         for tab, team_name in zip(team_tabs, team_names):
             with tab:
-                expansion = plot_data['all_expanded_plots'][team_name]
-                display_team_expansion(team_name, expansion)
+                try:
+                    expansion = plot_data['all_expanded_plots'][team_name]
+                    display_team_expansion(team_name, expansion)
+                except Exception as e:
+                    st.error(f"Error displaying {team_name}: {str(e)}")
+                    st.json(plot_data['all_expanded_plots'][team_name])
         
         # Voting results section
         st.markdown("---")
