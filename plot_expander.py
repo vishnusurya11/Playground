@@ -12,6 +12,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 import time
 from collections import defaultdict
+import random
 
 # Load environment variables
 load_dotenv()
@@ -297,9 +298,13 @@ Synthesize all inputs into a cohesive, compelling plot expansion that incorporat
         votes = []
         vote_tally = {team_name: 0 for team_name in expanded_plots.keys()}
         
-        # Prepare expansions text for voting
+        # Prepare expansions text for voting with randomized order
+        team_order = list(expanded_plots.keys())
+        random.shuffle(team_order)  # Randomize to avoid order bias
+        
         expansions_text = ""
-        for team_name, proposal in expanded_plots.items():
+        for team_name in team_order:
+            proposal = expanded_plots[team_name]
             expansions_text += f"\n{'='*60}\n"
             expansions_text += f"TEAM: {team_name}\n"
             expansions_text += f"Model: {proposal.model_used}\n\n"
@@ -323,15 +328,22 @@ Synthesize all inputs into a cohesive, compelling plot expansion that incorporat
             
             # Build voting prompt
             criteria_weights = agent_config.get("voting_criteria_weights", {})
+            voting_bias = agent_config.get("voting_bias", "balanced evaluation")
             
             voting_prompt = f"""You are {agent_config['name']}.
 
 {agent_config.get('system_prompt', 'You are a voting council member evaluating plot expansions.')}
 
-Here are all the plot expansions to evaluate:
+IMPORTANT VOTING GUIDANCE:
+- As {agent_config['name']}, you have a unique perspective: {voting_bias}
+- Don't simply choose what seems "best overall" - vote based on YOUR specific expertise and biases
+- It's GOOD to disagree with what others might choose. The council needs diverse opinions.
+- Trust your instincts and professional judgment, even if it goes against conventional wisdom.
+
+Here are all the plot expansions to evaluate (presented in random order):
 {expansions_text}
 
-Your voting criteria and weights:
+Your voting criteria and personal weights (these reflect YOUR priorities, not universal standards):
 - Originality ({criteria_weights.get('originality', 0.15)*100:.0f}%): How unique and fresh is the concept?
 - Coherence ({criteria_weights.get('coherence', 0.15)*100:.0f}%): How well does the plot hold together?
 - Market Potential ({criteria_weights.get('market_potential', 0.15)*100:.0f}%): Will readers want to read this?
@@ -339,12 +351,14 @@ Your voting criteria and weights:
 - Thematic Richness ({criteria_weights.get('thematic_richness', 0.15)*100:.0f}%): Does it explore meaningful themes?
 - Expandability ({criteria_weights.get('expandability', 0.15)*100:.0f}%): Can this sustain a 100k+ word novel?
 
-Please evaluate all expansions and vote for the best one. 
+Remember: Your weights show what YOU value most. A {criteria_weights.get('character_depth', 0.15)*100:.0f}% weight on character depth means that's how much it matters to YOU specifically.
+
+Please evaluate all expansions and vote for the best one according to YOUR perspective.
 
 You MUST respond in the following JSON format:
 {{
   "vote_for_team": "Team Name Here",
-  "reasoning": "Your detailed reasoning here",
+  "reasoning": "Your detailed reasoning here, explaining why THIS choice aligns with YOUR specific perspective and biases",
   "scores": {{
     "originality": 8,
     "coherence": 7,
@@ -357,8 +371,9 @@ You MUST respond in the following JSON format:
 
 Important:
 - Choose ONE team from the expansions above
-- Provide specific reasoning with examples from the text
-- Rate each criterion from 1-10
+- Your reasoning should reflect YOUR unique perspective as {agent_config['name']}
+- Don't try to be "fair" or "balanced" - be true to your role
+- Rate each criterion from 1-10 based on YOUR standards
 - Your response must be valid JSON only"""
 
             try:
